@@ -16,10 +16,10 @@ class InsertValuesIntranet(Intranet):
         self.html_manager = HtmlManager()
 
     def get_planilha(self):
-        self.service_planilha.get_planilha(self.__url_planilha, "planilha.xlsx")
+        self.service_planilha.get_planilha(self.__url_planilha, "temp/planilha.xlsx")
 
     def carrega_arquivo(self):
-        return self.excel_manager.read_excel("planilha.xlsx")
+        return self.excel_manager.read_excel("temp/planilha.xlsx")
     
     def insert_values_intranet(self):
         self.get_planilha()
@@ -31,7 +31,7 @@ class InsertValuesIntranet(Intranet):
                     self.post_values(value)
                 except:
                     self.post_values(value)
-            self.html_manager.html_to_pdf(self.get_html(), 'output.pdf')
+            self.html_manager.html_to_pdf(self.get_html(), 'temp/output.pdf')
             print('Dados preenchidos e PDF gerado')
         else:
             print('Login deu errado')

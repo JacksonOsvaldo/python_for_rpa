@@ -1,91 +1,103 @@
 import pytest
+import time
 import requests
 import pandas as pd
-# from fpdf import FPDF
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.select import Select
+from weasyprint import HTML
 
 class TestAutomation:
-    @pytest.fixture(scope="class", autouse=True)
-    def setup_browser(self):
-        """Configura o WebDriver para os testes Selenium."""
-        self.browser = webdriver.Chrome()
-        yield
-        self.browser.quit()
 
     @pytest.fixture
     def temp_dir(self, tmp_path):
         """Fornece um diretório temporário para arquivos de teste."""
         return tmp_path
 
-    # Teste 1: Abrir uma página web com Selenium
-    def test_open_page(self):
-        url = "https://example.com"
-        self.browser.get(url)
-        assert "Example Domain" in self.browser.title
-
-    # Teste 2: Fazer login em uma página web com Selenium
-    def test_login(self):
-        url = "https://example-login-page.com"
-        self.browser.get(url)
-
-        username_field = self.browser.find_element(By.NAME, "username")
-        password_field = self.browser.find_element(By.NAME, "password")
-        login_button = self.browser.find_element(By.ID, "login")
-
-        username_field.send_keys("testuser")
-        password_field.send_keys("password123")
-        login_button.click()
-
-        assert "Dashboard" in self.browser.page_source
-
-    # Teste 3: Inserir valores em uma página web com Selenium
-    def test_insert_values(self):
-        url = "https://example-form.com"
-        self.browser.get(url)
-
-        input_field = self.browser.find_element(By.NAME, "input_field")
-        submit_button = self.browser.find_element(By.NAME, "submit")
-
-        input_field.send_keys("Test Value")
-        submit_button.click()
-
-        assert "Success" in self.browser.page_source
-
-    # Teste 4: Baixar um arquivo via requests
     def test_download_file(self, temp_dir):
-        url = "https://example.com/sample.xlsx"
-        file_path = temp_dir / "sample.xlsx"
+        file_path = temp_dir / "SalesData.xlsx"
 
-        response = requests.get(url)
+        response = requests.get('https://robotsparebinindustries.com/SalesData.xlsx')
+
+        if response.status_code == 200:
+            open(file_path, 'wb').write(response.content)
+            
         assert response.status_code == 200
-
-        with open(file_path, "wb") as f:
-            f.write(response.content)
-
         assert file_path.exists()
 
-    # Teste 5: Leitura de arquivo baixado (xlsx) com Pandas
-    def test_read_xlsx(self, temp_dir):
-        xlsx_file = temp_dir / "sample.xlsx"
+    def test_load_xlsx(self, temp_dir):
+        file_path = temp_dir / "SalesData.xlsx"
 
-        # Cria um arquivo de exemplo
-        data = {"Col1": [1, 2, 3], "Col2": ["A", "B", "C"]}
-        df = pd.DataFrame(data)
-        df.to_excel(xlsx_file, index=False)
+        response = requests.get('https://robotsparebinindustries.com/SalesData.xlsx')
 
-        # Lê o arquivo criado
-        read_df = pd.read_excel(xlsx_file)
-        assert read_df.equals(df)
+        if response.status_code == 200:
+            open(file_path, 'wb').write(response.content)
 
-    # # Teste 6: Criação de PDF com FPDF
-    # def test_create_pdf(self, temp_dir):
-    #     pdf_file = temp_dir / "output.pdf"
+        read_df = pd.read_excel(file_path)
+        assert read_df.empty == False
+
+    def test_open_intranet(self):
+        browser = webdriver.Chrome()
+        url = "https://robotsparebinindustries.com"
+        browser.get(url)
+        assert "RobotSpareBin Industries Inc. - Intranet" in browser.title
+
+    def test_login(self):
+        browser = webdriver.Chrome()
+        url = "https://robotsparebinindustries.com"
+        browser.get(url)
+        browser.find_element(By.ID, 'username').send_keys('maria')
+        browser.find_element(By.ID, 'password').send_keys('thoushallnotpass')
+        browser.find_element(By.CLASS_NAME, 'btn.btn-primary').click()
+        time.sleep(4)
+        text = browser.find_element(By.CLASS_NAME, 'username').text
+        assert "maria" == text
+
+    def test_insert_value(self):
+        browser = webdriver.Chrome()
+        url = "https://robotsparebinindustries.com"
+        browser.get(url)
+
+        #Login
+        browser.find_element(By.ID, 'username').send_keys('maria')
+        browser.find_element(By.ID, 'password').send_keys('thoushallnotpass')
+        browser.find_element(By.CLASS_NAME, 'btn.btn-primary').click()
+        time.sleep(4)
         
-    #     pdf = FPDF()
-    #     pdf.add_page()
-    #     pdf.set_font("Arial", size=12)
-    #     pdf.cell(200, 10, txt="Hello World", ln=True, align="C")
-    #     pdf.output(str(pdf_file))
+        #Inserção valores
+        browser.find_element(By.ID, 'firstname').send_keys('Teste')
+        browser.find_element(By.ID, 'lastname').send_keys('Teste')
+        Select(browser.find_element(By.ID, 'salestarget')).select_by_value('30000')
+        browser.find_element(By.ID, 'salesresult').send_keys('5000')
+        browser.find_element(By.CLASS_NAME, 'btn.btn-primary').click()
+        
+        time.sleep(4)
+        text = browser.find_element(By.XPATH, '//*[@id="sales-results"]/table/tbody/tr/td[1]').text
 
-    #     assert pdf_file.exists()
+        assert "Teste" in text
+
+    def test_print_table(self, temp_dir):
+        file_path = temp_dir / 'result.pdf'
+
+        browser = webdriver.Chrome()
+        url = "https://robotsparebinindustries.com"
+        browser.get(url)
+
+        #Login
+        browser.find_element(By.ID, 'username').send_keys('maria')
+        browser.find_element(By.ID, 'password').send_keys('thoushallnotpass')
+        browser.find_element(By.CLASS_NAME, 'btn.btn-primary').click()
+        time.sleep(4)
+        
+        #Inserção valores
+        browser.find_element(By.ID, 'firstname').send_keys('Teste')
+        browser.find_element(By.ID, 'lastname').send_keys('Teste')
+        Select(browser.find_element(By.ID, 'salestarget')).select_by_value('30000')
+        browser.find_element(By.ID, 'salesresult').send_keys('5000')
+        browser.find_element(By.CLASS_NAME, 'btn.btn-primary').click()
+        
+        time.sleep(4)
+        source_html = browser.find_element(By.ID, 'sales-results').get_attribute('innerHTML')
+        HTML(string=source_html).write_pdf(file_path)
+
+        assert file_path.exists()
